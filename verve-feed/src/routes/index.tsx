@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { POSTS, CREATORS } from "@/lib/mock-data";
+import { redirectIfAuthed } from "@/lib/require-guest";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: redirectIfAuthed,
   head: () => ({
     meta: [
       { title: "Plethora — Curated visual collections" },
@@ -24,10 +27,10 @@ function Landing() {
       {/* Top nav */}
       <nav className="sticky top-0 z-40 glass-strong border-b border-border">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="font-mono text-sm font-semibold tracking-tight">PLETHORA</Link>
+          <BrandLogo to="/" size="sm" showWordmark />
           <div className="hidden md:flex items-center gap-8 text-sm">
-            <Link to="/feed" className="text-muted-foreground hover:text-foreground transition-colors">Feed</Link>
-            <Link to="/explore" className="text-muted-foreground hover:text-foreground transition-colors">Explore</Link>
+            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Feed</Link>
+            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Explore</Link>
             <a href="#creators" className="text-muted-foreground hover:text-foreground transition-colors">Creators</a>
           </div>
           <div className="flex items-center gap-2">
@@ -54,7 +57,7 @@ function Landing() {
               Get Started
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link to="/explore" className="px-7 h-12 inline-flex items-center bg-transparent border border-border rounded-full text-sm font-medium hover:bg-secondary transition-colors">
+            <Link to="/login" className="px-7 h-12 inline-flex items-center bg-transparent border border-border rounded-full text-sm font-medium hover:bg-secondary transition-colors">
               Explore
             </Link>
           </div>
@@ -93,7 +96,7 @@ function Landing() {
               <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground mb-3">(02) Trending Creators</p>
               <h2 className="text-3xl md:text-4xl font-medium tracking-tight">People shaping the feed.</h2>
             </div>
-            <Link to="/explore" className="hidden md:inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors items-center gap-1.5">
+            <Link to="/login" className="hidden md:inline-flex text-sm text-muted-foreground hover:text-foreground transition-colors items-center gap-1.5">
               View all <ArrowRight className="size-3.5" />
             </Link>
           </div>
@@ -142,7 +145,7 @@ function Landing() {
 
       <footer className="border-t border-border">
         <div className="max-w-[1440px] mx-auto px-6 py-10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="font-mono text-sm font-semibold">PLETHORA</span>
+          <BrandLogo size="sm" showWordmark />
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Plethora. Designed for visual depth.</p>
         </div>
       </footer>

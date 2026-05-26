@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { MasonryFeed } from "@/components/masonry-feed";
 import { POSTS, CATEGORIES } from "@/lib/mock-data";
+import { requireAuth } from "@/lib/require-auth";
 import { useState } from "react";
 import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/explore")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Explore — Plethora" },
@@ -17,6 +19,16 @@ export const Route = createFileRoute("/explore")({
 
 function ExplorePage() {
   const [q, set_q] = useState("");
+  const filteredPosts = POSTS.filter((p) => {
+    if (!q.trim()) return true;
+    const lower = q.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(lower) ||
+      (p.caption || "").toLowerCase().includes(lower) ||
+      p.tags.some((t) => t.toLowerCase().includes(lower)) ||
+      p.creator.username.toLowerCase().includes(lower)
+    );
+  });
   return (
     <AppShell>
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-8 lg:pt-12">
@@ -42,7 +54,7 @@ function ExplorePage() {
           ))}
         </div>
 
-        <MasonryFeed posts={POSTS} />
+        <MasonryFeed posts={filteredPosts} />
       </div>
     </AppShell>
   );

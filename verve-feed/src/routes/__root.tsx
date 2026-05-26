@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/auth-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -78,6 +79,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "A sanctuary for curated visual thought. Browse, save, and share imagery from a community of designers and photographers." },
       { name: "author", content: "Plethora" },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/plethora-logo.png" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -85,6 +87,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/plethora-logo.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -112,10 +116,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <Outlet />
-        <Toaster position="bottom-right" />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <Outlet />
+          <Toaster position="bottom-right" />
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

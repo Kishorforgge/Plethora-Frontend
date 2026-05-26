@@ -24,6 +24,7 @@ export interface Post {
   likes: number;
   comments: number;
   saved: boolean;
+  liked?: boolean;
 }
 
 export interface Comment {

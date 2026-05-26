@@ -2,12 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
 import { useState } from "react";
 import type { Post } from "@/lib/mock-data";
+import { postsApi } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface Props { post: Post }
 
 export function PostCard({ post }: Props) {
-  const [liked, setLiked] = useState(false);
+  const queryClient = useQueryClient();
+  const isApiPost = /^[a-f\d]{24}$/i.test(post.id);
+  const [liked, setLiked] = useState(!!post.liked);
   const [saved, setSaved] = useState(post.saved);
   const [loaded, setLoaded] = useState(false);
 
@@ -37,7 +41,24 @@ export function PostCard({ post }: Props) {
             onClick={(e) => e.preventDefault()}
           >
             <button
-              onClick={(e) => { e.preventDefault(); setSaved(!saved); toast(saved ? "Removed" : "Saved to collection"); }}
+              onClick={async (e) => {
+                e.preventDefault();
+                const next = !saved;
+                setSaved(next);
+                try {
+                  if (isApiPost) {
+                    if (next) await postsApi.bookmark(post.id);
+                    else await postsApi.unbookmark(post.id);
+                    queryClient.invalidateQueries({ queryKey: ["my-saved"] });
+                    queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                    queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
+                  }
+                  toast(next ? "Saved to collection" : "Removed");
+                } catch (error) {
+                  setSaved(!next);
+                  toast.error(error instanceof Error ? error.message : "Could not update save");
+                }
+              }}
               aria-label="Save"
               className={`px-4 h-9 rounded-full text-xs font-medium backdrop-blur-md transition-all ${
                 saved ? "bg-foreground text-background" : "bg-white/80 text-black hover:bg-white"
@@ -67,7 +88,21 @@ export function PostCard({ post }: Props) {
         </Link>
         <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
           <button
-            onClick={() => { setLiked(!liked); }}
+            onClick={async () => {
+              const next = !liked;
+              setLiked(next);
+              try {
+                if (isApiPost) {
+                  if (next) await postsApi.like(post.id);
+                  else await postsApi.unlike(post.id);
+                  queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                  queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
+                }
+              } catch (error) {
+                setLiked(!next);
+                toast.error(error instanceof Error ? error.message : "Could not update like");
+              }
+            }}
             aria-label="Like"
             className="size-8 rounded-full grid place-items-center hover:bg-secondary transition-colors"
           >
