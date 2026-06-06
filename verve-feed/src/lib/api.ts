@@ -132,6 +132,20 @@ export const userApi = {
       isFollowing: boolean;
     }>(`/api/users/${encodeURIComponent(username)}`),
 
+  getUserProfile: (username: string) =>
+    apiFetch<{
+      _id: string;
+      username: string;
+      fullName: string;
+      bio: string;
+      profilePicture: string;
+      followersCount: number;
+      followingCount: number;
+      postsCount: number;
+      isFollowing: boolean;
+      createdAt: string;
+    }>(`/api/users/profile/${encodeURIComponent(username)}`),
+
   follow: (userId: string) =>
     apiFetch<null>(`/api/users/${userId}/follow`, { method: "POST" }),
 
@@ -157,6 +171,83 @@ export const userApi = {
         profilePicture: string;
       }>
     >("/api/users/me/following"),
+
+  followers: () =>
+    apiFetch<
+      Array<{
+        _id: string;
+        username: string;
+        fullName: string;
+        profilePicture: string;
+      }>
+    >("/api/users/followers"),
+
+  following: () =>
+    apiFetch<
+      Array<{
+        _id: string;
+        username: string;
+        fullName: string;
+        profilePicture: string;
+      }>
+    >("/api/users/following"),
+
+  getUserFollowers: (userId: string) =>
+    apiFetch<
+      Array<{
+        _id: string;
+        username: string;
+        fullName: string;
+        profilePicture: string;
+        isVerified: boolean;
+        isFollowing: boolean;
+        isBlocked: boolean;
+        isMuted: boolean;
+      }>
+    >(`/api/users/${encodeURIComponent(userId)}/followers`),
+
+  getUserFollowing: (userId: string) =>
+    apiFetch<
+      Array<{
+        _id: string;
+        username: string;
+        fullName: string;
+        profilePicture: string;
+        isVerified: boolean;
+        isFollowing: boolean;
+        isBlocked: boolean;
+        isMuted: boolean;
+      }>
+    >(`/api/users/${encodeURIComponent(userId)}/following`),
+
+  searchFollowers: (query: string) =>
+    apiFetch<
+      Array<{
+        _id: string;
+        username: string;
+        fullName: string;
+        profilePicture: string;
+        isVerified: boolean;
+        isFollowing: boolean;
+        isBlocked: boolean;
+        isMuted: boolean;
+      }>
+    >(`/api/users/search-followers?q=${encodeURIComponent(query)}`),
+
+  removeFollower: (userId: string) =>
+    apiFetch<null>(`/api/users/${encodeURIComponent(userId)}/remove-follower`, { method: "POST" }),
+
+  block: (userId: string) =>
+    apiFetch<{ success: boolean; isBlocked: boolean }>(`/api/users/${encodeURIComponent(userId)}/block`, { method: "POST" }),
+
+  unblock: (userId: string) =>
+    apiFetch<{ success: boolean; isBlocked: boolean }>(`/api/users/${encodeURIComponent(userId)}/unblock`, { method: "POST" }),
+
+  mute: (userId: string) =>
+    apiFetch<{ success: boolean; isMuted: boolean }>(`/api/users/${encodeURIComponent(userId)}/mute`, { method: "POST" }),
+
+  unmute: (userId: string) =>
+    apiFetch<{ success: boolean; isMuted: boolean }>(`/api/users/${encodeURIComponent(userId)}/unmute`, { method: "POST" }),
 };
 
 export interface ApiPost {
@@ -197,6 +288,8 @@ export const postsApi = {
   myUploads: () => apiFetch<ApiPost[]>("/api/posts/me/uploads"),
   mySaved: () => apiFetch<ApiPost[]>("/api/posts/me/saved"),
   myLiked: () => apiFetch<ApiPost[]>("/api/posts/me/liked"),
+  userUploads: (userId: string) =>
+    apiFetch<ApiPost[]>(`/api/posts/user/${encodeURIComponent(userId)}/uploads`),
 
   upload: (file: File, caption: string, tags: string) => {
     const form = new FormData();
@@ -235,6 +328,7 @@ export interface ApiMessage {
     fullName: string;
     profilePicture: string;
   };
+  edited?: boolean;
 }
 
 export interface ApiNotification {
@@ -258,9 +352,15 @@ export const notificationsApi = {
 };
 
 export const discussionsApi = {
-  list: () => apiFetch<ApiConversation[]>("/api/discussions"),
+  list: (type?: "public" | "private") =>
+    apiFetch<ApiConversation[]>(`/api/discussions${type ? `?type=${type}` : ""}`),
 
-  create: (body: { participantIds: string[]; title?: string; initialMessage?: string }) =>
+  create: (body: {
+    participantIds?: string[];
+    title?: string;
+    initialMessage?: string;
+    isPublic?: boolean;
+  }) =>
     apiFetch<ApiConversation>("/api/discussions", {
       method: "POST",
       body: JSON.stringify(body),
@@ -275,5 +375,42 @@ export const discussionsApi = {
     apiFetch<ApiMessage>(`/api/discussions/${id}/messages`, {
       method: "POST",
       body: JSON.stringify({ text }),
+    }),
+
+  editMessage: (messageId: string, text: string) =>
+    apiFetch<ApiMessage>(`/api/discussions/messages/${messageId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ text }),
+    }),
+
+  deleteMessage: (messageId: string) =>
+    apiFetch<null>(`/api/discussions/messages/${messageId}`, {
+      method: "DELETE",
+    }),
+};
+
+export interface DirectChatUser {
+  _id: string;
+  userId: string;
+  username: string;
+  profilePicture: string;
+  isOnline: boolean;
+  lastMessage: string;
+  unreadCount: number;
+}
+
+export const messagesApi = {
+  conversations: () =>
+    apiFetch<DirectChatUser[]>("/api/messages/conversations"),
+
+  getOrCreateConversation: (targetUserId: string) =>
+    apiFetch<{ status: string; data: ApiConversation }>("/api/messages/conversation", {
+      method: "POST",
+      body: JSON.stringify({ targetUserId }),
+    }),
+
+  markAsRead: (id: string) =>
+    apiFetch<null>(`/api/messages/conversations/${id}/read`, {
+      method: "PUT",
     }),
 };

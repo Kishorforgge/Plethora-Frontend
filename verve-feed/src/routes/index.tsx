@@ -102,7 +102,7 @@ function Landing() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {creators.map((c) => (
-              <Link to="/profile" key={c.id} className="group bg-surface rounded-[2rem] p-6 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-lift)] hover:-translate-y-1 transition-all">
+              <Link to="/profile/$username" params={{ username: c.username }} key={c.id} className="group bg-surface rounded-[2rem] p-6 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-lift)] hover:-translate-y-1 transition-all">
                 <div className="relative">
                   <img src={c.avatar} alt={c.name} className="size-16 rounded-full object-cover mb-4" />
                 </div>

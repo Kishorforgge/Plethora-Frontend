@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { userApi } from "@/lib/api";
 import { useAuth } from "@/components/auth-provider";
+import { Link } from "@tanstack/react-router";
 
 export interface CreatorCardUser {
   _id: string;
@@ -44,13 +45,15 @@ export function CreatorCard({ creator }: { creator: CreatorCardUser }) {
 
   return (
     <div className="shrink-0 w-44 bg-surface rounded-2xl p-4 border border-border hover:-translate-y-1 hover:shadow-[var(--shadow-soft)] transition-all">
-      <img
-        src={creator.profilePicture}
-        alt={creator.fullName || creator.username}
-        className="size-12 rounded-full object-cover mb-3"
-      />
-      <p className="text-sm font-medium truncate">{creator.fullName || creator.username}</p>
-      <p className="text-[11px] text-muted-foreground truncate mb-1">@{creator.username}</p>
+      <Link to="/profile/$username" params={{ username: creator.username }} className="block group">
+        <img
+          src={creator.profilePicture}
+          alt={creator.fullName || creator.username}
+          className="size-12 rounded-full object-cover mb-3"
+        />
+        <p className="text-sm font-medium truncate group-hover:underline">{creator.fullName || creator.username}</p>
+        <p className="text-[11px] text-muted-foreground truncate mb-1">@{creator.username}</p>
+      </Link>
       {creator.followersCount !== undefined && (
         <p className="text-[10px] text-muted-foreground mb-3">
           {creator.followersCount.toLocaleString()} followers

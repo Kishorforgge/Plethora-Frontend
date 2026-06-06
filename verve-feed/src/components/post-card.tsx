@@ -79,7 +79,7 @@ export function PostCard({ post }: Props) {
 
       {/* Below-card meta */}
       <div className="flex items-center justify-between px-2 mt-3">
-        <Link to="/profile" className="flex items-center gap-2 min-w-0">
+        <Link to="/profile/$username" params={{ username: post.creator.username }} className="flex items-center gap-2 min-w-0">
           <img src={post.creator.avatar} alt={post.creator.name} className="size-7 rounded-full object-cover shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{post.title}</p>
