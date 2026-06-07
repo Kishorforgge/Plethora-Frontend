@@ -146,7 +146,7 @@ function PostDetail() {
                   <p className="text-sm font-medium">{post.creator.name}</p>
                   <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">@{post.creator.username}</p>
                 </div>
-              </div>
+              </Link>
               <button className="px-4 h-9 rounded-full bg-foreground text-background text-xs font-medium">Follow</button>
             </div>
 
