@@ -1,16 +1,24 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
-import { getPost, relatedPosts, COMMENTS, ME } from "@/lib/mock-data";
 import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { postsApi } from "@/lib/api";
+import { CommentSection } from "@/components/comment-section";
+import { mapApiPostToDisplay } from "@/lib/post-utils";
+import { useAuth } from "@/components/auth-provider";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/post/$postId")({
-  loader: ({ params }) => {
-    const post = getPost(params.postId.split("-")[0]); // handle recycled ids
-    if (!post) throw notFound();
-    return { post };
+  loader: async ({ params }) => {
+    try {
+      const apiPost = await postsApi.getPostById(params.postId);
+      const post = mapApiPostToDisplay(apiPost);
+      return { post };
+    } catch (error) {
+      throw notFound();
+    }
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -31,16 +39,92 @@ export const Route = createFileRoute("/post/$postId")({
       </div>
     </AppShell>
   ),
+  pendingComponent: () => (
+    <AppShell>
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-6 lg:pt-10 animate-pulse">
+        <div className="h-6 w-32 bg-muted rounded-full mb-6" />
+        <div className="grid lg:grid-cols-[1.4fr_1fr] gap-8 bg-surface rounded-[2rem] p-3 border border-border">
+          <div className="rounded-[1.6rem] h-[60vh] bg-muted" />
+          <div className="space-y-6 p-6">
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-full bg-muted" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 w-24 bg-muted rounded" />
+                <div className="h-3 w-16 bg-muted rounded" />
+              </div>
+            </div>
+            <div className="h-8 w-3/4 bg-muted rounded" />
+            <div className="h-4 w-full bg-muted rounded" />
+            <div className="h-4 w-5/6 bg-muted rounded" />
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  ),
   component: PostDetail,
 });
 
 function PostDetail() {
   const { post } = Route.useLoaderData();
-  const related = relatedPosts(post.id);
-  const [liked, set_liked] = useState(false);
-  const [saved, set_saved] = useState(false);
-  const [comments, set_comments] = useState(COMMENTS[post.id] ?? []);
-  const [draft, set_draft] = useState("");
+  const { user } = useAuth();
+  
+  const [liked, set_liked] = useState(post.liked ?? false);
+  const [saved, set_saved] = useState(post.saved ?? false);
+  const [likesCount, setLikesCount] = useState(post.likes ?? 0);
+  const [commentCount, setCommentCount] = useState(post.comments ?? 0);
+
+  // Fetch related posts from database
+  const { data: relatedPosts = [] } = useQuery({
+    queryKey: ["related-posts", post.id],
+    queryFn: () => postsApi.list({ limit: 12 }),
+  });
+
+  const displayRelated = relatedPosts
+    .filter((p) => p._id !== post.id)
+    .map(mapApiPostToDisplay)
+    .slice(0, 8);
+
+  const handleLike = async () => {
+    if (!user) {
+      toast.error("Please sign in to like posts.");
+      return;
+    }
+    const next = !liked;
+    set_liked(next);
+    try {
+      if (next) {
+        const res = await postsApi.like(post.id);
+        setLikesCount(res.likesCount);
+      } else {
+        const res = await postsApi.unlike(post.id);
+        setLikesCount(res.likesCount);
+      }
+    } catch (err) {
+      set_liked(!next);
+      toast.error("Failed to update like status");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("Please sign in to save posts.");
+      return;
+    }
+    const next = !saved;
+    set_saved(next);
+    try {
+      if (next) {
+        await postsApi.bookmark(post.id);
+        toast.success("Saved to collection");
+      } else {
+        await postsApi.unbookmark(post.id);
+        toast.success("Removed from bookmarks");
+      }
+    } catch (err) {
+      set_saved(!next);
+      toast.error("Failed to update bookmark status");
+    }
+  };
 
   return (
     <AppShell>
@@ -51,7 +135,7 @@ function PostDetail() {
 
         <article className="grid lg:grid-cols-[1.4fr_1fr] gap-8 bg-surface rounded-[2rem] p-2 lg:p-3 border border-border shadow-[var(--shadow-soft)] animate-fade-up">
           <div className="rounded-[1.6rem] overflow-hidden bg-muted">
-            <img src={post.image} alt={post.title} className="w-full h-full object-cover max-h-[80vh]" />
+            <img src={post.image} alt={post.title} className="w-full h-full object-cover max-h-[85vh]" />
           </div>
 
           <aside className="flex flex-col p-4 lg:p-6">
@@ -62,7 +146,7 @@ function PostDetail() {
                   <p className="text-sm font-medium">{post.creator.name}</p>
                   <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">@{post.creator.username}</p>
                 </div>
-              </Link>
+              </div>
               <button className="px-4 h-9 rounded-full bg-foreground text-background text-xs font-medium">Follow</button>
             </div>
 
@@ -71,65 +155,37 @@ function PostDetail() {
 
             <div className="flex flex-wrap gap-1.5 mb-6">
               {post.tags.map((t: string) => (
-                <span key={t} className="px-3 h-7 inline-flex items-center rounded-full bg-secondary text-[11px] text-muted-foreground">#{t}</span>
+                <span key={t} className="px-3 h-7 inline-flex items-center rounded-full bg-secondary text-[11px] text-muted-foreground font-mono">#{t}</span>
               ))}
             </div>
 
             <div className="flex items-center gap-1 mb-6 pb-6 border-b border-border">
-              <ActionBtn onClick={() => set_liked(!liked)} icon={<Heart className={`size-4 ${liked ? "fill-red-500 stroke-red-500" : ""}`} />} label={post.likes + (liked ? 1 : 0)} />
-              <ActionBtn icon={<MessageCircle className="size-4" />} label={comments.length} />
-              <ActionBtn onClick={() => { setSavedAndToast(set_saved, saved); }} icon={<Bookmark className={`size-4 ${saved ? "fill-foreground" : ""}`} />} label={saved ? "Saved" : "Save"} />
+              <ActionBtn onClick={handleLike} icon={<Heart className={`size-4 ${liked ? "fill-red-500 stroke-red-500 scale-110" : ""}`} />} label={likesCount} />
+              <ActionBtn icon={<MessageCircle className="size-4" />} label={commentCount} />
+              <ActionBtn onClick={handleSave} icon={<Bookmark className={`size-4 ${saved ? "fill-foreground" : ""}`} />} label={saved ? "Saved" : "Save"} />
               <ActionBtn onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); toast("Link copied"); }} icon={<Share2 className="size-4" />} label="Share" />
             </div>
 
-            <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-4">Comments</h2>
-            <div className="flex-1 space-y-4 mb-4 max-h-64 overflow-y-auto">
-              {comments.length === 0 && <p className="text-sm text-muted-foreground">Be the first to leave a quiet word.</p>}
-              {comments.map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <img src={c.author.avatar} className="size-8 rounded-full object-cover shrink-0" alt={c.author.name} />
-                  <div className="min-w-0">
-                    <p className="text-xs"><span className="font-medium">@{c.author.username}</span> <span className="text-muted-foreground ml-1">{c.createdAt}</span></p>
-                    <p className="text-sm">{c.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!draft.trim()) return;
-                set_comments([...comments, { id: `nc${Date.now()}`, author: ME, text: draft.trim(), createdAt: "just now" }]);
-                set_draft("");
-              }}
-              className="flex gap-2"
-            >
-              <input
-                value={draft}
-                onChange={(e) => set_draft(e.target.value)}
-                placeholder="Add a comment…"
-                className="flex-1 h-11 px-4 rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-              />
-              <button type="submit" className="px-5 h-11 rounded-full bg-foreground text-background text-sm">Send</button>
-            </form>
+            <CommentSection
+              postId={post.id}
+              onCommentCountChange={setCommentCount}
+            />
           </aside>
         </article>
 
         <section className="mt-16">
           <h2 className="text-sm font-mono uppercase tracking-widest text-muted-foreground mb-6">Related frames</h2>
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
-            {related.map((p) => <PostCard key={p.id} post={p} />)}
-          </div>
+          {displayRelated.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No related visual collections found.</p>
+          ) : (
+            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6">
+              {displayRelated.map((p) => <PostCard key={p.id} post={p} />)}
+            </div>
+          )}
         </section>
       </div>
     </AppShell>
   );
-}
-
-function setSavedAndToast(set: (v: boolean) => void, current: boolean) {
-  set(!current);
-  toast(current ? "Removed" : "Saved to collection");
 }
 
 function ActionBtn({ icon, label, onClick }: { icon: React.ReactNode; label: React.ReactNode; onClick?: () => void }) {

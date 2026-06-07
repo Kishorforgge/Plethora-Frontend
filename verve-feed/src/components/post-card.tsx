@@ -10,7 +10,6 @@ interface Props { post: Post }
 
 export function PostCard({ post }: Props) {
   const queryClient = useQueryClient();
-  const isApiPost = /^[a-f\d]{24}$/i.test(post.id);
   const [liked, setLiked] = useState(!!post.liked);
   const [saved, setSaved] = useState(post.saved);
   const [loaded, setLoaded] = useState(false);
@@ -46,13 +45,11 @@ export function PostCard({ post }: Props) {
                 const next = !saved;
                 setSaved(next);
                 try {
-                  if (isApiPost) {
-                    if (next) await postsApi.bookmark(post.id);
-                    else await postsApi.unbookmark(post.id);
-                    queryClient.invalidateQueries({ queryKey: ["my-saved"] });
-                    queryClient.invalidateQueries({ queryKey: ["my-liked"] });
-                    queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
-                  }
+                  if (next) await postsApi.bookmark(post.id);
+                  else await postsApi.unbookmark(post.id);
+                  queryClient.invalidateQueries({ queryKey: ["my-saved"] });
+                  queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                  queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
                   toast(next ? "Saved to collection" : "Removed");
                 } catch (error) {
                   setSaved(!next);
@@ -92,12 +89,10 @@ export function PostCard({ post }: Props) {
               const next = !liked;
               setLiked(next);
               try {
-                if (isApiPost) {
-                  if (next) await postsApi.like(post.id);
-                  else await postsApi.unlike(post.id);
-                  queryClient.invalidateQueries({ queryKey: ["my-liked"] });
-                  queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
-                }
+                if (next) await postsApi.like(post.id);
+                else await postsApi.unlike(post.id);
+                queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
               } catch (error) {
                 setLiked(!next);
                 toast.error(error instanceof Error ? error.message : "Could not update like");
@@ -108,9 +103,15 @@ export function PostCard({ post }: Props) {
           >
             <Heart className={`size-4 transition-all ${liked ? "fill-red-500 stroke-red-500 scale-110" : ""}`} />
           </button>
-          <button aria-label="Comment" className="size-8 rounded-full grid place-items-center hover:bg-secondary transition-colors">
-            <MessageCircle className="size-4" />
-          </button>
+          <Link
+            to="/post/$postId"
+            params={{ postId: post.id }}
+            aria-label={`${post.comments} comments`}
+            className="size-8 rounded-full inline-flex items-center justify-center gap-1 px-2 hover:bg-secondary transition-colors text-xs"
+          >
+            <MessageCircle className="size-4 shrink-0" />
+            {post.comments > 0 && <span>{post.comments}</span>}
+          </Link>
           <button
             onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); toast("Link copied"); }}
             aria-label="Share"
