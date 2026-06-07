@@ -18,22 +18,33 @@ function LoginSuccessPage() {
   const { setUserFromToken } = useAuth();
 
   useEffect(() => {
+    console.log("[LoginSuccessPage] Mounted. Search parameters:", { 
+      token: token ? `${token.substring(0, 10)}... [length: ${token.length}]` : "undefined", 
+      error: error || "none" 
+    });
+    
     if (error) {
+      console.error("[LoginSuccessPage] Sign-in failed error parameter present:", error);
       toast.error("Sign-in failed. Please try again.");
       navigate({ to: "/login" });
       return;
     }
     if (!token) {
+      console.error("[LoginSuccessPage] No token query parameter found.");
       toast.error("No session token received.");
       navigate({ to: "/login" });
       return;
     }
+    
+    console.log("[LoginSuccessPage] Initiating setUserFromToken...");
     setUserFromToken(token)
       .then(() => {
+        console.log("[LoginSuccessPage] setUserFromToken success, redirecting to /feed");
         toast.success("Signed in successfully");
         navigate({ to: "/feed" });
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[LoginSuccessPage] setUserFromToken failed:", err);
         toast.error("Could not complete sign-in.");
         navigate({ to: "/login" });
       });

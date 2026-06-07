@@ -53,7 +53,11 @@ export async function apiFetch<T>(
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${API_URL}${path}`, {
+    credentials: "include",
+    ...options,
+    headers,
+  });
   const json = (await res.json().catch(() => ({}))) as ApiResponse<T> & {
     message?: string;
     errors?: string[];
@@ -186,11 +190,13 @@ export const postsApi = {
     return apiFetch<ApiPost[]>(`/api/posts/following${qs ? `?${qs}` : ""}`);
   },
 
-  list: (params?: { page?: number; limit?: number }) => {
-    const q = new URLSearchParams();
-    if (params?.page) q.set("page", String(params.page));
-    if (params?.limit) q.set("limit", String(params.limit));
-    const qs = q.toString();
+  list: (params?: { page?: number; limit?: number; q?: string; tag?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.q) searchParams.set("q", params.q);
+    if (params?.tag) searchParams.set("tag", params.tag);
+    const qs = searchParams.toString();
     return apiFetch<ApiPost[]>(`/api/posts${qs ? `?${qs}` : ""}`);
   },
 
@@ -210,6 +216,39 @@ export const postsApi = {
   unlike: (id: string) => apiFetch<{ likesCount: number }>(`/api/posts/${id}/unlike`, { method: "POST" }),
   bookmark: (id: string) => apiFetch<null>(`/api/posts/${id}/bookmark`, { method: "POST" }),
   unbookmark: (id: string) => apiFetch<null>(`/api/posts/${id}/unbookmark`, { method: "POST" }),
+  getPostById: (id: string) => apiFetch<ApiPost>(`/api/posts/${id}`),
+};
+
+export interface ApiComment {
+  _id: string;
+  postId: string;
+  userId: string;
+  username: string;
+  profilePicture: string;
+  text: string;
+  createdAt: string;
+}
+
+export const commentsApi = {
+  getByPost: (postId: string, params?: { page?: number; limit?: number }) => {
+    const search = new URLSearchParams();
+    if (params?.page) search.set("page", String(params.page));
+    if (params?.limit) search.set("limit", String(params.limit));
+    const qs = search.toString();
+    return apiFetch<ApiComment[]>(`/api/comments/${postId}${qs ? `?${qs}` : ""}`);
+  },
+  add: (postId: string, text: string) =>
+    apiFetch<ApiComment>(`/api/comments/${postId}`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
+    }),
+  update: (commentId: string, text: string) =>
+    apiFetch<ApiComment>(`/api/comments/${commentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }),
+  delete: (commentId: string) =>
+    apiFetch<null>(`/api/comments/${commentId}`, { method: "DELETE" }),
 };
 
 export interface ApiConversation {

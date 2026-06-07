@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { MasonryFeed } from "@/components/masonry-feed";
-import { POSTS, CATEGORIES } from "@/lib/mock-data";
+import { CATEGORIES } from "@/lib/mock-data";
 import { requireAuth } from "@/lib/require-auth";
 import { useState } from "react";
 import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { postsApi } from "@/lib/api";
+import { mapApiPostToDisplay } from "@/lib/post-utils";
 
 export const Route = createFileRoute("/explore")({
   beforeLoad: requireAuth,
@@ -19,16 +22,20 @@ export const Route = createFileRoute("/explore")({
 
 function ExplorePage() {
   const [q, set_q] = useState("");
-  const filteredPosts = POSTS.filter((p) => {
-    if (!q.trim()) return true;
-    const lower = q.toLowerCase();
-    return (
-      p.title.toLowerCase().includes(lower) ||
-      (p.caption || "").toLowerCase().includes(lower) ||
-      p.tags.some((t) => t.toLowerCase().includes(lower)) ||
-      p.creator.username.toLowerCase().includes(lower)
-    );
+  const [selectedTag, setSelectedTag] = useState("All");
+
+  const { data: apiPosts = [], isLoading } = useQuery({
+    queryKey: ["explore-posts", q, selectedTag],
+    queryFn: () =>
+      postsApi.list({
+        limit: 50,
+        q: q.trim() || undefined,
+        tag: selectedTag !== "All" ? selectedTag : undefined,
+      }),
   });
+
+  const displayPosts = apiPosts.map(mapApiPostToDisplay);
+
   return (
     <AppShell>
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-8 lg:pt-12">
@@ -48,13 +55,29 @@ function ExplorePage() {
 
         <div className="flex flex-wrap gap-2 mb-10">
           {CATEGORIES.map((c) => (
-            <span key={c} className="px-4 h-8 inline-flex items-center rounded-full bg-surface border border-border text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all cursor-pointer">
+            <span
+              key={c}
+              onClick={() => setSelectedTag(c)}
+              className={`px-4 h-8 inline-flex items-center rounded-full border text-xs transition-all cursor-pointer ${
+                (c === "All" && selectedTag === "All") || c.toLowerCase() === selectedTag.toLowerCase()
+                  ? "bg-foreground text-background border-foreground font-medium"
+                  : "bg-surface border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+            >
               {c}
             </span>
           ))}
         </div>
 
-        <MasonryFeed posts={filteredPosts} />
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
+            Loading archive…
+          </p>
+        ) : displayPosts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matching visual frames found.</p>
+        ) : (
+          <MasonryFeed posts={displayPosts} />
+        )}
       </div>
     </AppShell>
   );

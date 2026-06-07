@@ -45,7 +45,7 @@ function FeedPage() {
 
   const { data: discoverPosts = [], isLoading: loadingDiscover } = useQuery({
     queryKey: ["discover-feed", q],
-    queryFn: () => postsApi.list({ limit: 40 }),
+    queryFn: () => postsApi.list({ limit: 40, q: q.trim() || undefined }),
     enabled: tab === "discover",
   });
 

@@ -77,10 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const setUserFromToken = useCallback(
     async (token: string) => {
+      console.log("[AuthProvider] setUserFromToken called with token length:", token.length);
       setToken(token);
-      await refreshUser();
+      try {
+        console.log("[AuthProvider] Fetching user profile (/api/auth/me) with token...");
+        const me = await authApi.me();
+        console.log("[AuthProvider] Loaded user profile successfully:", me.username);
+        setUser(me);
+      } catch (error) {
+        console.error("[AuthProvider] Failed to fetch user profile with token:", error);
+        setToken(null);
+        setUser(null);
+        throw error;
+      }
     },
-    [refreshUser]
+    []
   );
 
   const value = useMemo(
