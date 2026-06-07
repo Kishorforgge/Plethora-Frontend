@@ -15,12 +15,14 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginSuccessRouteImport } from './routes/login-success'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as DiscussionsRouteImport } from './routes/discussions'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileUsernameRouteImport } from './routes/profile_.$username'
 import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 
 const UploadRoute = UploadRouteImport.update({
@@ -53,6 +55,11 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginSuccessRoute = LoginSuccessRouteImport.update({
   id: '/login-success',
   path: '/login-success',
@@ -83,6 +90,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile_/$username',
+  path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PostPostIdRoute = PostPostIdRouteImport.update({
   id: '/post/$postId',
   path: '/post/$postId',
@@ -96,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
+  '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
@@ -103,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/upload': typeof UploadRoute
   '/post/$postId': typeof PostPostIdRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,6 +125,7 @@ export interface FileRoutesByTo {
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
+  '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
@@ -118,6 +133,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/upload': typeof UploadRoute
   '/post/$postId': typeof PostPostIdRoute
+  '/profile/$username': typeof ProfileUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -127,6 +143,7 @@ export interface FileRoutesById {
   '/feed': typeof FeedRoute
   '/login': typeof LoginRoute
   '/login-success': typeof LoginSuccessRoute
+  '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/settings': typeof SettingsRoute
@@ -134,6 +151,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/upload': typeof UploadRoute
   '/post/$postId': typeof PostPostIdRoute
+  '/profile_/$username': typeof ProfileUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,6 +162,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/login'
     | '/login-success'
+    | '/messages'
     | '/notifications'
     | '/profile'
     | '/settings'
@@ -151,6 +170,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/upload'
     | '/post/$postId'
+    | '/profile/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -159,6 +179,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/login'
     | '/login-success'
+    | '/messages'
     | '/notifications'
     | '/profile'
     | '/settings'
@@ -166,6 +187,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/upload'
     | '/post/$postId'
+    | '/profile/$username'
   id:
     | '__root__'
     | '/'
@@ -174,6 +196,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/login'
     | '/login-success'
+    | '/messages'
     | '/notifications'
     | '/profile'
     | '/settings'
@@ -181,6 +204,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/upload'
     | '/post/$postId'
+    | '/profile_/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -190,6 +214,7 @@ export interface RootRouteChildren {
   FeedRoute: typeof FeedRoute
   LoginRoute: typeof LoginRoute
   LoginSuccessRoute: typeof LoginSuccessRoute
+  MessagesRoute: typeof MessagesRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   SettingsRoute: typeof SettingsRoute
@@ -197,6 +222,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UploadRoute: typeof UploadRoute
   PostPostIdRoute: typeof PostPostIdRoute
+  ProfileUsernameRoute: typeof ProfileUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -243,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login-success': {
       id: '/login-success'
       path: '/login-success'
@@ -285,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile_/$username': {
+      id: '/profile_/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/post/$postId': {
       id: '/post/$postId'
       path: '/post/$postId'
@@ -302,6 +342,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedRoute: FeedRoute,
   LoginRoute: LoginRoute,
   LoginSuccessRoute: LoginSuccessRoute,
+  MessagesRoute: MessagesRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   SettingsRoute: SettingsRoute,
@@ -309,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   UploadRoute: UploadRoute,
   PostPostIdRoute: PostPostIdRoute,
+  ProfileUsernameRoute: ProfileUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, Plus, Bell, User, Moon, Sun, Search, MessageCircle, LogOut } from "lucide-react";
+import { Home, Compass, Plus, Bell, User, Moon, Sun, Search, MessageCircle, MessageSquare, LogOut } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "./auth-provider";
 import { notificationsApi } from "@/lib/api";
@@ -12,6 +12,7 @@ const navItems = [
   { to: "/explore", label: "Explore", icon: Compass },
   { to: "/upload", label: "Upload", icon: Plus },
   { to: "/discussions", label: "Discussions", icon: MessageCircle },
+  { to: "/messages", label: "Messages", icon: MessageSquare },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/profile", label: "Profile", icon: User },
 ] as const;

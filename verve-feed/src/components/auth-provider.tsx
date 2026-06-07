@@ -33,16 +33,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+    console.log("[useAuth] refreshUser called. Current token stored in localStorage exists:", !!token);
     if (!token) {
       setUser(null);
       return;
     }
     try {
+      console.log("[useAuth] Fetching user profile via authApi.me()...");
       const me = await authApi.me();
+      console.log("[useAuth] User profile fetched successfully:", me.username);
       setUser(me);
-    } catch {
+    } catch (error) {
+      console.error("[useAuth] Failed to load user profile in refreshUser:", error);
+      if (error instanceof TypeError && error.message === "Failed to fetch") {
+        console.error("[useAuth] This error is usually caused by CORS issues or the backend server being offline.");
+      }
       setToken(null);
       setUser(null);
+      throw error;
     }
   }, []);
 

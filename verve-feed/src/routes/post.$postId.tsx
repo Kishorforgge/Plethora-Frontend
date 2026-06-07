@@ -140,7 +140,7 @@ function PostDetail() {
 
           <aside className="flex flex-col p-4 lg:p-6">
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
+              <Link to="/profile/$username" params={{ username: post.creator.username }} className="flex items-center gap-3">
                 <img src={post.creator.avatar} alt={post.creator.name} className="size-11 rounded-full object-cover" />
                 <div>
                   <p className="text-sm font-medium">{post.creator.name}</p>

@@ -1,13 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { MasonryFeed } from "@/components/masonry-feed";
 import { useAuth } from "@/components/auth-provider";
-import { postsApi, userApi } from "@/lib/api";
+import { postsApi, userApi, messagesApi } from "@/lib/api";
 import { mapApiPostToDisplay } from "@/lib/post-utils";
 import { requireAuth } from "@/lib/require-auth";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { Settings, Grid3x3, Bookmark, Heart } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useMemo, UIEvent } from "react";
+import { Settings, Grid3x3, Bookmark, Heart, X, Search, Check, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import { io } from "socket.io-client";
+import { FollowListModal } from "@/components/follow-list-modal";
 
 export const Route = createFileRoute("/profile")({
   beforeLoad: requireAuth,
@@ -20,9 +23,10 @@ export const Route = createFileRoute("/profile")({
 type ProfileTab = "posts" | "saved" | "liked";
 
 function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [tab, set_tab] = useState<ProfileTab>("posts");
   const [listModal, setListModal] = useState<"followers" | "following" | null>(null);
+  const qc = useQueryClient();
 
   const { data: uploads = [], isLoading: loadingUploads } = useQuery({
     queryKey: ["my-uploads"],
@@ -41,17 +45,31 @@ function ProfilePage() {
     enabled: tab === "liked",
   });
 
-  const { data: followers = [], isLoading: loadingFollowers } = useQuery({
-    queryKey: ["my-followers"],
-    queryFn: userApi.myFollowers,
-    enabled: listModal === "followers",
-  });
+  // Socket.IO synchronization for follow/unfollow updates
+  useEffect(() => {
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
 
-  const { data: following = [], isLoading: loadingFollowing } = useQuery({
-    queryKey: ["my-following"],
-    queryFn: userApi.myFollowing,
-    enabled: listModal === "following",
-  });
+    if (user?._id) {
+      socket.emit("join", user._id);
+    }
+
+    socket.on("follow_update", (data: { followerId: string; followingId: string; action: "follow" | "unfollow" }) => {
+      if (data.followerId === user?._id || data.followingId === user?._id) {
+        refreshUser().catch((err) => console.error("Socket error refreshing profile user:", err));
+        qc.invalidateQueries({ queryKey: ["user-followers", user?._id] });
+        qc.invalidateQueries({ queryKey: ["user-following", user?._id] });
+        qc.invalidateQueries({ queryKey: ["search-followers"] });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id, refreshUser, qc]);
 
   if (!user) return null;
 
@@ -129,7 +147,7 @@ function ProfilePage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
+          <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest animate-pulse">
             Loading…
           </p>
         ) : displayPosts.length === 0 ? (
@@ -142,11 +160,11 @@ function ProfilePage() {
           <MasonryFeed posts={displayPosts} />
         )}
       </div>
+
       {listModal && (
         <FollowListModal
           title={listModal === "followers" ? "Followers" : "Following"}
-          users={listModal === "followers" ? followers : following}
-          loading={listModal === "followers" ? loadingFollowers : loadingFollowing}
+          userId={user._id}
           onClose={() => setListModal(null)}
         />
       )}
@@ -167,51 +185,6 @@ function Stat({
     <div className={clickable ? "hover:opacity-80 transition-opacity" : ""}>
       <p className="text-xl font-semibold tracking-tight">{value.toLocaleString()}</p>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function FollowListModal({
-  title,
-  users,
-  loading,
-  onClose,
-}: {
-  title: string;
-  users: Array<{ _id: string; username: string; fullName: string; profilePicture: string }>;
-  loading: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md max-h-[80vh] overflow-hidden rounded-3xl border border-border bg-background shadow-[var(--shadow-lift)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">
-            Close
-          </button>
-        </div>
-        <div className="max-h-[65vh] overflow-y-auto p-3">
-          {loading ? (
-            <p className="text-sm text-muted-foreground p-3">Loading…</p>
-          ) : users.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-3">No users yet.</p>
-          ) : (
-            users.map((u) => (
-              <div key={u._id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-surface">
-                <img src={u.profilePicture} alt={u.fullName || u.username} className="size-11 rounded-full object-cover" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{u.fullName || u.username}</p>
-                  <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }
