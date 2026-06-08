@@ -101,7 +101,7 @@ function MessagesPage() {
 
   // Mark conversations read when activeId opens
   useEffect(() => {
-    if (activeId) {
+    if (activeId && !activeId.startsWith("temp-")) {
       messagesApi.markAsRead(activeId).then(() => {
         qc.invalidateQueries({ queryKey: ["conversations"] });
       }).catch((e) => console.error("Failed to mark messages as read:", e));
@@ -127,7 +127,7 @@ function MessagesPage() {
   const { data: thread } = useQuery({
     queryKey: ["discussion", activeId],
     queryFn: () => discussionsApi.messages(activeId!),
-    enabled: !!activeId,
+    enabled: !!activeId && !activeId.startsWith("temp-"),
   });
 
   // Global search for users outside followers/following when search term is provided
@@ -207,12 +207,23 @@ function MessagesPage() {
     );
   }, [allUsers, searchTerm]);
 
+  // Debug logs for selected user, active conversation, conversation ID, thread ID
+  useEffect(() => {
+    const activeConv = conversations.find((c) => c?._id === activeId);
+    console.log("Messages Page State Change:", {
+      selectedUser: selectedChat,
+      activeConversation: activeConv || null,
+      conversationId: activeId,
+      threadId: thread?.conversation?._id || thread?.conversation || null,
+    });
+  }, [selectedChat, activeId, conversations, thread]);
+
   // Mutations
   const sendMutation = useMutation({
     mutationFn: ({ id, text }: { id: string; text: string }) => discussionsApi.send(id, text),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       setNewMsg("");
-      qc.invalidateQueries({ queryKey: ["discussion", activeId] });
+      qc.invalidateQueries({ queryKey: ["discussion", variables.id] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -247,7 +258,7 @@ function MessagesPage() {
     mutationFn: (targetUserId: string) => messagesApi.getOrCreateConversation(targetUserId),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
-      setActiveId(res.data._id);
+      setActiveId(res?._id);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -270,10 +281,10 @@ function MessagesPage() {
   // Click handler to open existing or initialize new conversation automatically
   const handleUserClick = (targetUser: any) => {
     setSelectedChat(targetUser);
-    if (targetUser.conversationId) {
+    if (targetUser?.conversationId) {
       setActiveId(targetUser.conversationId);
     } else {
-      getOrCreateMutation.mutate(targetUser._id);
+      setActiveId(`temp-${targetUser?._id}`);
     }
   };
 
@@ -517,23 +528,24 @@ function MessagesPage() {
                 {/* Active Chat Header */}
                 <div className="px-4 py-3.5 border-b border-border flex items-center gap-3">
                   {(() => {
-                    const activeConv = conversations.find((c) => c._id === activeId);
-                    if (!activeConv) return <span className="font-bold text-sm text-foreground">Conversation</span>;
+                    const activeConv = conversations.find((c) => c?._id === activeId);
+                    const chatUser = activeConv || selectedChat;
+                    if (!chatUser) return <span className="font-bold text-sm text-foreground">Conversation</span>;
                     return (
                       <Link
                         to="/profile/$username"
-                        params={{ username: activeConv.username }}
+                        params={{ username: chatUser.username }}
                         className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                       >
                         <div className="size-9 rounded-full overflow-hidden border border-border flex-shrink-0">
-                          {activeConv.profilePicture ? (
-                            <img src={activeConv.profilePicture} alt={activeConv.username} className="size-full object-cover" />
+                          {chatUser.profilePicture ? (
+                            <img src={chatUser.profilePicture} alt={chatUser.username} className="size-full object-cover" />
                           ) : (
                             <span className="size-full grid place-items-center bg-muted text-xs font-mono text-muted-foreground">?</span>
                           )}
                         </div>
                         <span className="font-bold text-sm text-foreground">
-                          {activeConv.username}
+                          {chatUser.username}
                         </span>
                       </Link>
                     );
@@ -542,18 +554,18 @@ function MessagesPage() {
                 
                 {/* Messages Thread list */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {thread?.messages.map((m: ApiMessage) => {
-                    const mine = m.sender._id === user?._id;
-                    const isEditing = editingMessage?._id === m._id;
+                  {thread?.messages?.map((m: ApiMessage) => {
+                    const mine = m?.sender?._id === user?._id;
+                    const isEditing = editingMessage?._id === m?._id;
                     return (
                       <div
-                        key={m._id}
+                        key={m?._id}
                         className={`flex gap-2.5 items-end ${mine ? "justify-end" : "justify-start"}`}
                       >
                         {!mine && (
                           <div className="size-7 rounded-full overflow-hidden border border-border flex-shrink-0 mb-1">
-                            {m.sender.profilePicture ? (
-                              <img src={m.sender.profilePicture} alt={m.sender.username} className="size-full object-cover" />
+                            {m?.sender?.profilePicture ? (
+                              <img src={m?.sender?.profilePicture} alt={m?.sender?.username} className="size-full object-cover" />
                             ) : (
                               <span className="size-full grid place-items-center bg-muted text-[10px] font-mono">?</span>
                             )}
@@ -562,7 +574,7 @@ function MessagesPage() {
                         <ContextMenu>
                           <ContextMenuTrigger className="max-w-[70%]">
                             <div
-                              className={`w-full px-4 py-2.5 rounded-2xl text-sm ${
+                               className={`w-full px-4 py-2.5 rounded-2xl text-sm ${
                                 mine
                                   ? "bg-foreground text-background rounded-br-md font-medium"
                                   : "bg-secondary rounded-bl-md text-foreground"
@@ -570,7 +582,7 @@ function MessagesPage() {
                             >
                               {!mine && (
                                 <p className="text-[10px] font-mono uppercase tracking-wider opacity-70 mb-1">
-                                  {m.sender.username}
+                                  {m?.sender?.username}
                                 </p>
                               )}
                               {isEditing ? (
@@ -600,7 +612,7 @@ function MessagesPage() {
                                       type="button"
                                       disabled={editMutation.isPending}
                                       onClick={() => {
-                                        if (!editMsgText.trim()) return;
+                                        if (!editMsgText.trim() || !m?._id) return;
                                         editMutation.mutate({
                                           messageId: m._id,
                                           text: editMsgText.trim(),
@@ -618,8 +630,8 @@ function MessagesPage() {
                                 </div>
                               ) : (
                                 <div className="break-words">
-                                  {m.text}
-                                  {m.edited === true && (
+                                  {m?.text}
+                                  {m?.edited === true && (
                                     <span className="text-[10px] opacity-60 ml-1.5 select-none">
                                       (edited)
                                     </span>
@@ -630,7 +642,7 @@ function MessagesPage() {
                           </ContextMenuTrigger>
                           <ContextMenuContent className="w-48">
                             <ContextMenuItem
-                              onClick={() => handleCopyMessage(m.text)}
+                              onClick={() => handleCopyMessage(m?.text || "")}
                               className="flex items-center gap-2 cursor-pointer"
                             >
                               <Copy className="size-3.5" />
@@ -641,7 +653,7 @@ function MessagesPage() {
                                 <ContextMenuItem
                                   onClick={() => {
                                     setEditingMessage(m);
-                                    setEditMsgText(m.text);
+                                    setEditMsgText(m?.text || "");
                                   }}
                                   className="flex items-center gap-2 cursor-pointer"
                                 >
@@ -650,8 +662,10 @@ function MessagesPage() {
                                 </ContextMenuItem>
                                 <ContextMenuItem
                                   onClick={() => {
-                                    setSelectedMessage(m);
-                                    deleteMutation.mutate(m._id);
+                                    if (m?._id) {
+                                      setSelectedMessage(m);
+                                      deleteMutation.mutate(m._id);
+                                    }
                                   }}
                                   className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                                 >
@@ -671,10 +685,29 @@ function MessagesPage() {
                 {/* Input send bar */}
                 <form
                   className="p-3 border-t border-border flex gap-2"
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!newMsg.trim() || !activeId) return;
-                    sendMutation.mutate({ id: activeId, text: newMsg.trim() });
+                    const trimmedMsg = newMsg.trim();
+                    if (!trimmedMsg || !activeId) return;
+
+                    if (activeId.startsWith("temp-")) {
+                      const targetUserId = activeId.replace("temp-", "");
+                      try {
+                        const conv = await messagesApi.getOrCreateConversation(targetUserId);
+                        const realId = conv?._id;
+                        if (!realId) throw new Error("Could not retrieve conversation ID");
+                        
+                        // Update UI states
+                        setActiveId(realId);
+                        
+                        // Send the message using the newly created conversation ID
+                        sendMutation.mutate({ id: realId, text: trimmedMsg });
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to start conversation");
+                      }
+                    } else {
+                      sendMutation.mutate({ id: activeId, text: trimmedMsg });
+                    }
                   }}
                 >
                   <input

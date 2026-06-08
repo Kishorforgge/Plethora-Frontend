@@ -444,7 +444,7 @@ export const messagesApi = {
     apiFetch<DirectChatUser[]>("/api/messages/conversations"),
 
   getOrCreateConversation: (targetUserId: string) =>
-    apiFetch<{ status: string; data: ApiConversation }>("/api/messages/conversation", {
+    apiFetch<ApiConversation>("/api/messages/conversation", {
       method: "POST",
       body: JSON.stringify({ targetUserId }),
     }),
