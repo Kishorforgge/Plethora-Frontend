@@ -17,6 +17,11 @@ import {
 
 export const Route = createFileRoute("/messages")({
   beforeLoad: requireAuth,
+  validateSearch: (search: Record<string, unknown>): { select?: string } => {
+    return {
+      select: typeof search.select === "string" ? search.select : undefined,
+    };
+  },
   head: () => ({
     meta: [{ title: "Messages — Plethora" }],
   }),
@@ -29,6 +34,24 @@ function MessagesPage() {
   const navigate = useNavigate();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newMsg, setNewMsg] = useState("");
+
+  const search = Route.useSearch() as { select?: string };
+  const selectParam = search.select;
+
+  // Sync activeId with window global for notifications suppression
+  useEffect(() => {
+    (window as any).__activeConversationId = activeId;
+    return () => {
+      (window as any).__activeConversationId = null;
+    };
+  }, [activeId]);
+
+  // Set activeId from select URL search parameter
+  useEffect(() => {
+    if (selectParam) {
+      setActiveId(selectParam);
+    }
+  }, [selectParam]);
   
   // Search dropdown variables
   const [searchTerm, setSearchTerm] = useState("");

@@ -6,6 +6,8 @@ import { notificationsApi } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BrandLogo } from "./brand-logo";
+import { useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 
 const navItems = [
   { to: "/feed", label: "Home", icon: Home },
@@ -24,6 +26,98 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const avatar = user?.profilePicture;
   const displayName = user?.fullName || user?.username || "You";
+
+  const socketRef = useRef<any>(null);
+  const processedMessageIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Request notification permission once
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    });
+
+    socketRef.current = socket;
+
+    socket.emit("join", user._id);
+
+    const handleNewMessage = (message: any) => {
+      console.log("[Notification] Message received", message);
+      if (!message || !message._id) return;
+      if (processedMessageIds.current.has(message._id)) return;
+      processedMessageIds.current.add(message._id);
+
+      // Do not show notifications for messages sent by the current user
+      if (message.sender?._id === user?._id) return;
+
+      // Do not notify if the current user is viewing that conversation
+      if ((window as any).__activeConversationId === message.conversation) return;
+
+      if (document.visibilityState === "hidden") {
+        if (Notification.permission === "granted") {
+          const notification = new Notification(`New message from ${message.sender?.username || "User"}`, {
+            body: message.text ? (message.text.length > 50 ? `${message.text.substring(0, 50)}...` : message.text) : "",
+            icon: message.sender?.profilePicture || undefined,
+          });
+          console.log("[Notification] Desktop notification shown");
+          notification.onclick = () => {
+            window.focus();
+            navigate({ to: "/messages", search: { select: message.conversation } });
+          };
+        }
+      } else {
+        // Show sonner toast
+        toast.custom(
+          (t) => (
+            <div
+              onClick={() => {
+                toast.dismiss(t);
+                navigate({ to: "/messages", search: { select: message.conversation } });
+              }}
+              className="flex items-center gap-3 p-3 bg-surface border border-border rounded-2xl shadow-xl hover:bg-secondary transition-colors cursor-pointer text-left w-80 animate-fade-in"
+            >
+              <div className="size-10 rounded-full overflow-hidden border border-border flex-shrink-0">
+                {message.sender?.profilePicture ? (
+                  <img src={message.sender.profilePicture} alt={message.sender.username} className="size-full object-cover" />
+                ) : (
+                  <span className="size-full grid place-items-center bg-muted text-xs font-mono text-muted-foreground">?</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-foreground leading-none">{message.sender?.username || "User"}</p>
+                <p className="text-xs text-muted-foreground truncate mt-1">
+                  {message.text ? (message.text.length > 50 ? `${message.text.substring(0, 50)}...` : message.text) : ""}
+                </p>
+              </div>
+            </div>
+          ),
+          {
+            duration: 5000,
+            position: "bottom-right",
+          }
+        );
+        console.log("[Notification] Toast shown");
+      }
+    };
+
+    socket.on("new_message", handleNewMessage);
+    socket.on("newMessage", handleNewMessage);
+    socket.on("messageReceived", handleNewMessage);
+    socket.on("incomingMessage", handleNewMessage);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?._id, navigate]);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
