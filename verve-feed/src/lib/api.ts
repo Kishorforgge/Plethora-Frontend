@@ -309,6 +309,7 @@ export const postsApi = {
   unlike: (id: string) => apiFetch<{ likesCount: number }>(`/api/posts/${id}/unlike`, { method: "POST" }),
   bookmark: (id: string) => apiFetch<null>(`/api/posts/${id}/bookmark`, { method: "POST" }),
   unbookmark: (id: string) => apiFetch<null>(`/api/posts/${id}/unbookmark`, { method: "POST" }),
+  delete: (id: string) => apiFetch<null>(`/api/posts/${id}`, { method: "DELETE" }),
   getPostById: (id: string) => apiFetch<ApiPost>(`/api/posts/${id}`),
 };
 

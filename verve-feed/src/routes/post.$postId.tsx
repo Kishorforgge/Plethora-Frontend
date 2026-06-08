@@ -1,14 +1,14 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
-import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { postsApi } from "@/lib/api";
 import { CommentSection } from "@/components/comment-section";
 import { mapApiPostToDisplay } from "@/lib/post-utils";
 import { useAuth } from "@/components/auth-provider";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/post/$postId")({
   loader: async ({ params }) => {
@@ -67,6 +67,9 @@ export const Route = createFileRoute("/post/$postId")({
 function PostDetail() {
   const { post } = Route.useLoaderData();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleting, setDeleting] = useState(false);
   
   const [liked, set_liked] = useState(post.liked ?? false);
   const [saved, set_saved] = useState(post.saved ?? false);
@@ -147,7 +150,34 @@ function PostDetail() {
                   <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">@{post.creator.username}</p>
                 </div>
               </Link>
-              <button className="px-4 h-9 rounded-full bg-foreground text-background text-xs font-medium">Follow</button>
+              <div className="flex items-center gap-2">
+                {user?._id === post.creator.id && (
+                  <button
+                    onClick={async () => {
+                      if (deleting) return;
+                      if (!window.confirm("Delete this upload? This action cannot be undone.")) return;
+                      setDeleting(true);
+                      try {
+                        await postsApi.delete(post.id);
+                        queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
+                        queryClient.invalidateQueries({ queryKey: ["my-saved"] });
+                        queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                        toast.success("Upload deleted successfully.");
+                        navigate("/profile");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Failed to delete upload");
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                    disabled={deleting}
+                    className="px-4 h-9 rounded-full bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 className="size-4 inline mr-2" /> Delete
+                  </button>
+                )}
+                <button className="px-4 h-9 rounded-full bg-foreground text-background text-xs font-medium">Follow</button>
+              </div>
             </div>
 
             <h1 className="text-2xl font-semibold tracking-tight mb-2">{post.title}</h1>

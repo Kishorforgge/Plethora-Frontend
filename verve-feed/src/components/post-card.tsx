@@ -1,19 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Post } from "@/lib/mock-data";
 import { postsApi } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth-provider";
 
 interface Props { post: Post }
 
 export function PostCard({ post }: Props) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(!!post.liked);
   const [saved, setSaved] = useState(post.saved);
   const [loaded, setLoaded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
+  const isOwner = user?._id === post.creator.id;
   const aspect = post.height / post.width;
 
   return (
@@ -39,6 +43,33 @@ export function PostCard({ post }: Props) {
             className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0"
             onClick={(e) => e.preventDefault()}
           >
+            {isOwner && (
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (deleting) return;
+                  if (!window.confirm("Delete this upload? This action cannot be undone.")) return;
+                  setDeleting(true);
+                  try {
+                    await postsApi.delete(post.id);
+                    queryClient.invalidateQueries({ queryKey: ["my-uploads"] });
+                    queryClient.invalidateQueries({ queryKey: ["my-saved"] });
+                    queryClient.invalidateQueries({ queryKey: ["my-liked"] });
+                    toast.success("Upload deleted successfully.");
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Failed to delete upload");
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                aria-label="Delete upload"
+                className="px-4 h-9 rounded-full text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-all"
+                disabled={deleting}
+              >
+                <Trash2 className="size-3.5 inline mr-1.5" />
+                Delete
+              </button>
+            )}
             <button
               onClick={async (e) => {
                 e.preventDefault();
