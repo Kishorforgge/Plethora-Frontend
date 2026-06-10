@@ -5,7 +5,7 @@ import { userApi } from "@/lib/api";
 import { requireAuth } from "@/lib/require-auth";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, LogOut, User, Grid3x3, Bookmark, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   beforeLoad: requireAuth,
@@ -132,20 +132,6 @@ function SettingsPage() {
           </div>
         </section>
 
-        {/* Quick links */}
-        <section className="mb-8">
-          <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground mb-3">
-            Your collections
-          </p>
-          <div className="grid gap-2">
-            <QuickLink to="/profile" icon={<User className="size-4" />} label="View profile" />
-            <QuickLink to="/profile" icon={<Grid3x3 className="size-4" />} label="My uploads" />
-            <QuickLink to="/profile" icon={<Bookmark className="size-4" />} label="Saved posts" />
-            <QuickLink to="/profile" icon={<Heart className="size-4" />} label="Liked posts" />
-            <QuickLink to="/discussions" icon={<MessageCircle className="size-4" />} label="Discussions" />
-          </div>
-        </section>
-
         <form onSubmit={saveProfile} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
@@ -192,22 +178,3 @@ function SettingsPage() {
   );
 }
 
-function QuickLink({
-  to,
-  icon,
-  label,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-3 px-4 h-11 rounded-2xl border border-border bg-surface hover:bg-secondary text-sm transition-colors"
-    >
-      {icon}
-      {label}
-    </Link>
-  );
-}

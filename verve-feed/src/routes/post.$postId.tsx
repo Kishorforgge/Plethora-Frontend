@@ -163,7 +163,7 @@ function PostDetail() {
                         queryClient.invalidateQueries({ queryKey: ["my-saved"] });
                         queryClient.invalidateQueries({ queryKey: ["my-liked"] });
                         toast.success("Upload deleted successfully.");
-                        navigate("/profile");
+                        navigate({ to: "/profile" });
                       } catch (error) {
                         toast.error(error instanceof Error ? error.message : "Failed to delete upload");
                       } finally {

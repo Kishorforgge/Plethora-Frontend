@@ -69,13 +69,21 @@ function MessagesPage() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
     const socket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"]
     });
 
     socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[Socket] Connected", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[Socket] Disconnected");
+    });
 
     if (user?._id) {
       socket.emit("join", user._id);
@@ -87,6 +95,7 @@ function MessagesPage() {
     });
 
     socket.on("new_message", (message: ApiMessage & { conversation?: string }) => {
+      console.log("[Socket] Message received", message);
       qc.invalidateQueries({ queryKey: ["conversations"] });
       if (message.conversation && activeId === message.conversation) {
         qc.invalidateQueries({ queryKey: ["discussion", activeId] });

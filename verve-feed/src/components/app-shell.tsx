@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
     const socket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],
@@ -48,9 +48,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     socketRef.current = socket;
 
+    socket.on("connect", () => {
+      console.log("[Socket] Connected", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[Socket] Disconnected");
+    });
+
     socket.emit("join", user._id);
 
     const handleNewMessage = (message: any) => {
+      console.log("[Socket] Message received", message);
       console.log("[Notification] Message received", message);
       if (!message || !message._id) return;
       if (processedMessageIds.current.has(message._id)) return;
@@ -76,35 +85,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Show sonner toast
-        toast.custom(
-          (t) => (
-            <div
-              onClick={() => {
-                toast.dismiss(t);
-                navigate({ to: "/messages", search: { select: message.conversation } });
-              }}
-              className="flex items-center gap-3 p-3 bg-surface border border-border rounded-2xl shadow-xl hover:bg-secondary transition-colors cursor-pointer text-left w-80 animate-fade-in"
-            >
-              <div className="size-10 rounded-full overflow-hidden border border-border flex-shrink-0">
-                {message.sender?.profilePicture ? (
-                  <img src={message.sender.profilePicture} alt={message.sender.username} className="size-full object-cover" />
-                ) : (
-                  <span className="size-full grid place-items-center bg-muted text-xs font-mono text-muted-foreground">?</span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-foreground leading-none">{message.sender?.username || "User"}</p>
-                <p className="text-xs text-muted-foreground truncate mt-1">
-                  {message.text ? (message.text.length > 50 ? `${message.text.substring(0, 50)}...` : message.text) : ""}
-                </p>
-              </div>
-            </div>
-          ),
-          {
-            duration: 5000,
-            position: "bottom-right",
-          }
-        );
+        toast.success(`New message from ${message.sender?.username || "User"}`, {
+          description: message.text,
+          duration: 5000,
+          action: {
+            label: "View",
+            onClick: () => {
+              navigate({ to: "/messages", search: { select: message.conversation } });
+            },
+          },
+        });
         console.log("[Notification] Toast shown");
       }
     };

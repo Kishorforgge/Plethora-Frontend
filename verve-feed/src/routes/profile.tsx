@@ -47,7 +47,7 @@ function ProfilePage() {
 
   // Socket.IO synchronization for follow/unfollow updates
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
     const socket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],

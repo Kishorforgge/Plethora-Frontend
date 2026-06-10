@@ -30,12 +30,18 @@ type FeedTab = "following" | "discover";
 function FeedPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<FeedTab>("following");
-  const [q, set_q] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: suggested = [] } = useQuery({
+  const { data: creators = [] } = useQuery({
     queryKey: ["suggested-creators"],
     queryFn: userApi.suggested,
   });
+
+  const visibleCreators = creators.filter(
+    (creator) =>
+      creator.username !== "fallback_tester" &&
+      creator.fullName !== "Fallback Tester"
+  );
 
   const { data: followingPosts = [], isLoading: loadingFollowing } = useQuery({
     queryKey: ["following-feed"],
@@ -44,21 +50,34 @@ function FeedPage() {
   });
 
   const { data: discoverPosts = [], isLoading: loadingDiscover } = useQuery({
-    queryKey: ["discover-feed", q],
-    queryFn: () => postsApi.list({ limit: 40, q: q.trim() || undefined }),
+    queryKey: ["discover-feed", searchQuery],
+    queryFn: () => postsApi.list({ limit: 40, q: searchQuery.trim() || undefined }),
     enabled: tab === "discover",
   });
 
   const rawPosts = tab === "following" ? followingPosts : discoverPosts;
   const posts = rawPosts.map(mapApiPostToDisplay).filter((p) => {
-    if (!q.trim()) return true;
-    const lower = q.toLowerCase();
+    if (!searchQuery.trim()) return true;
+    const lower = searchQuery.toLowerCase();
     return (
       p.title.toLowerCase().includes(lower) ||
       p.tags.some((t) => t.includes(lower)) ||
       p.creator.username.toLowerCase().includes(lower)
     );
   });
+
+  const filteredCreators = visibleCreators.filter((creator) => {
+    const query = searchQuery.toLowerCase().trim();
+
+    return (
+      creator.username?.toLowerCase().includes(query) ||
+      creator.fullName?.toLowerCase().includes(query)
+    );
+  });
+
+  console.log("Search Query:", searchQuery);
+  console.log("Creators:", visibleCreators.length);
+  console.log("Filtered:", filteredCreators.length);
 
   const loading = tab === "following" ? loadingFollowing : loadingDiscover;
 
@@ -68,8 +87,8 @@ function FeedPage() {
         <div className="relative max-w-2xl mx-auto mb-8 animate-fade-up">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
-            value={q}
-            onChange={(e) => set_q(e.target.value)}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by title, tag, or creator…"
             className="w-full h-14 pl-12 pr-5 rounded-full bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-ring transition-all text-sm"
           />
@@ -106,11 +125,15 @@ function FeedPage() {
             </h2>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            {suggested.length === 0 ? (
-              <p className="text-sm text-muted-foreground px-2">No creators to suggest yet.</p>
-            ) : (
-              suggested.map((c) => <CreatorCard key={c._id} creator={c} />)
+            {searchQuery && filteredCreators.length === 0 && (
+              <p className="text-sm text-muted-foreground px-2">No creators found.</p>
             )}
+            {!searchQuery && visibleCreators.length === 0 && (
+              <p className="text-sm text-muted-foreground px-2">No creators to suggest yet.</p>
+            )}
+            {filteredCreators.map((c) => (
+              <CreatorCard key={c._id} creator={c} />
+            ))}
           </div>
         </section>
 
