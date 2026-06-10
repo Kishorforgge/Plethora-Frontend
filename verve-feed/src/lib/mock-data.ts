@@ -25,6 +25,7 @@ export interface Post {
   comments: number;
   saved: boolean;
   liked?: boolean;
+  category?: string;
 }
 
 export interface Comment {
@@ -98,7 +99,7 @@ export const CREATORS = creators;
 
 export const CATEGORIES = [
   "All", "Architecture", "Nature", "Minimal", "Interiors", "Photography",
-  "Texture", "Mood", "Editorial", "Object", "Pattern", "Light",
+  "Texture", "Mood", "Editorial", "Object", "Pattern", "Light", "Gaming",
 ];
 
 export const NOTIFICATIONS: Notification[] = [

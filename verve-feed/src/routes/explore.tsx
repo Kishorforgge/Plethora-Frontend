@@ -30,11 +30,34 @@ function ExplorePage() {
       postsApi.list({
         limit: 50,
         q: q.trim() || undefined,
-        tag: selectedTag !== "All" ? selectedTag : undefined,
+        category: selectedTag !== "All" ? selectedTag : undefined,
       }),
   });
 
   const displayPosts = apiPosts.map(mapApiPostToDisplay);
+
+  const selectedCategory = selectedTag;
+  const filteredPosts =
+    selectedCategory === "All"
+      ? displayPosts
+      : displayPosts.filter((post) => {
+          const category = post.category?.trim().toLowerCase();
+          return (
+            category &&
+            category === selectedCategory.toLowerCase()
+          );
+        });
+
+  const posts = filteredPosts;
+  console.log("POST SAMPLE", posts.slice(0,5));
+  console.log("Selected Category", selectedCategory);
+  console.log("Rendered Posts Count", posts.length);
+  console.log(
+    posts.map((p) => ({
+      title: p.title,
+      category: p.category,
+    }))
+  );
 
   return (
     <AppShell>
@@ -73,10 +96,10 @@ function ExplorePage() {
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
             Loading archive…
           </p>
-        ) : displayPosts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <p className="text-sm text-muted-foreground">No matching visual frames found.</p>
         ) : (
-          <MasonryFeed posts={displayPosts} />
+          <MasonryFeed posts={filteredPosts} />
         )}
       </div>
     </AppShell>

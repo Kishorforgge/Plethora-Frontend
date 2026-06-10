@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { CATEGORIES } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/upload")({
   beforeLoad: requireAuth,
@@ -23,6 +24,7 @@ function UploadPage() {
   const [drag, set_drag] = useState(false);
   const [caption, set_caption] = useState("");
   const [tags, set_tags] = useState("");
+  const [category, setCategory] = useState("");
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -42,7 +44,7 @@ function UploadPage() {
     }
     setUploading(true);
     try {
-      await postsApi.upload(file, caption, tags);
+      await postsApi.upload(file, caption, tags, category || undefined);
       qc.invalidateQueries({ queryKey: ["my-uploads"] });
       toast.success("Posted to your collection");
       navigate({ to: "/profile" });
@@ -144,6 +146,23 @@ function UploadPage() {
               className="h-12 px-4 rounded-2xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
+              Category
+            </span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="h-12 px-4 rounded-2xl border border-border bg-surface focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+            >
+              <option value="">None (Uncategorized)</option>
+              {CATEGORIES.filter((c) => c !== "All").map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {uploading && (
@@ -160,6 +179,7 @@ function UploadPage() {
               setFile(null);
               set_caption("");
               set_tags("");
+              setCategory("");
             }}
             className="px-6 h-12 rounded-full border border-border text-sm hover:bg-secondary transition-colors"
           >

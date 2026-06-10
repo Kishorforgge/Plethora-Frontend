@@ -33,5 +33,6 @@ export function mapApiPostToDisplay(post: ApiPost): Post {
     comments: post.commentsCount ?? 0,
     saved: post.isBookmarked ?? false,
     liked: post.isLiked ?? false,
+    category: post.category,
   };
 }

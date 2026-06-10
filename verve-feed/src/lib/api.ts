@@ -270,6 +270,7 @@ export interface ApiPost {
     profilePicture: string;
   };
   createdAt: string;
+  category?: string;
 }
 
 export const postsApi = {
@@ -281,12 +282,13 @@ export const postsApi = {
     return apiFetch<ApiPost[]>(`/api/posts/following${qs ? `?${qs}` : ""}`);
   },
 
-  list: (params?: { page?: number; limit?: number; q?: string; tag?: string }) => {
+  list: (params?: { page?: number; limit?: number; q?: string; tag?: string; category?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set("page", String(params.page));
     if (params?.limit) searchParams.set("limit", String(params.limit));
     if (params?.q) searchParams.set("q", params.q);
     if (params?.tag) searchParams.set("tag", params.tag);
+    if (params?.category) searchParams.set("category", params.category);
     const qs = searchParams.toString();
     return apiFetch<ApiPost[]>(`/api/posts${qs ? `?${qs}` : ""}`);
   },
@@ -297,11 +299,14 @@ export const postsApi = {
   userUploads: (userId: string) =>
     apiFetch<ApiPost[]>(`/api/posts/user/${encodeURIComponent(userId)}/uploads`),
 
-  upload: (file: File, caption: string, tags: string) => {
+  upload: (file: File, caption: string, tags: string, category?: string) => {
     const form = new FormData();
     form.append("image", file);
     form.append("caption", caption);
     form.append("tags", tags);
+    if (category) {
+      form.append("category", category);
+    }
     return apiFetch<ApiPost>("/api/posts/upload", { method: "POST", body: form });
   },
 

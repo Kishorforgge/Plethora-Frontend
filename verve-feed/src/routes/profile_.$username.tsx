@@ -7,7 +7,7 @@ import { mapApiPostToDisplay } from "@/lib/post-utils";
 import { requireAuth } from "@/lib/require-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Settings, Grid3x3 } from "lucide-react";
+import { Grid3x3 } from "lucide-react";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 import { FollowListModal } from "@/components/follow-list-modal";
@@ -172,21 +172,12 @@ function UserProfilePage() {
             </div>
             <div className="flex gap-2">
               {isMe ? (
-                <>
-                  <Link
-                    to="/settings"
-                    className="px-5 h-11 rounded-full bg-foreground text-background text-sm font-medium hover:scale-[1.02] transition-transform inline-flex items-center"
-                  >
-                    Edit profile
-                  </Link>
-                  <Link
-                    to="/settings"
-                    aria-label="Settings"
-                    className="size-11 rounded-full border border-border grid place-items-center hover:bg-secondary transition-colors"
-                  >
-                    <Settings className="size-4" />
-                  </Link>
-                </>
+                <Link
+                  to="/settings"
+                  className="px-5 h-11 rounded-full bg-foreground text-background text-sm font-medium hover:scale-[1.02] transition-transform inline-flex items-center"
+                >
+                  Edit profile
+                </Link>
               ) : (
                 <>
                   {profileUser.isFollowing ? (

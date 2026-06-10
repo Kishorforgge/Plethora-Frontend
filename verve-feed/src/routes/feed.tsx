@@ -37,11 +37,7 @@ function FeedPage() {
     queryFn: userApi.suggested,
   });
 
-  const visibleCreators = creators.filter(
-    (creator) =>
-      creator.username !== "fallback_tester" &&
-      creator.fullName !== "Fallback Tester"
-  );
+  const visibleCreators = creators;
 
   const { data: followingPosts = [], isLoading: loadingFollowing } = useQuery({
     queryKey: ["following-feed"],
