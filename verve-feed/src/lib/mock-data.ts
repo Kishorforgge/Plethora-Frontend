@@ -5,6 +5,7 @@ export interface Creator {
   id: string;
   username: string;
   name: string;
+  fullName?: string;
   avatar: string;
   bio?: string;
   followers: number;
@@ -48,12 +49,12 @@ export interface Notification {
 const u = (id: string, w = 800) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 const creators: Creator[] = [
-  { id: "c1", username: "elena.rossi", name: "Elena Rossi", avatar: u("1494790108377-be9c29b29330", 200), bio: "Architect. Light archivist.", followers: 12400, following: 312, posts: 184 },
-  { id: "c2", username: "marcus.chen", name: "Marcus Chen", avatar: u("1500648767791-00dcc994a43e", 200), bio: "Spatial design & quiet objects.", followers: 8920, following: 188, posts: 92 },
-  { id: "c3", username: "ayanna.k", name: "Ayanna Kelly", avatar: u("1438761681033-6461ffad8d80", 200), bio: "Editorial photographer.", followers: 24100, following: 421, posts: 312 },
-  { id: "c4", username: "ren.takeda", name: "Ren Takeda", avatar: u("1535713875002-d1d0cf377fde", 200), bio: "Minimalism is a discipline.", followers: 5400, following: 99, posts: 64 },
-  { id: "c5", username: "juno.west", name: "Juno West", avatar: u("1534528741775-53994a69daeb", 200), bio: "Material studies.", followers: 31200, following: 502, posts: 428 },
-  { id: "c6", username: "amir.h", name: "Amir Hassan", avatar: u("1463453091185-61582044d556", 200), bio: "Mountain documentarian.", followers: 9800, following: 220, posts: 148 },
+  { id: "c1", username: "elena.rossi", name: "Elena Rossi", fullName: "Elena Rossi", avatar: u("1494790108377-be9c29b29330", 200), bio: "Architect. Light archivist.", followers: 12400, following: 312, posts: 184 },
+  { id: "c2", username: "marcus.chen", name: "Marcus Chen", fullName: "Marcus Chen", avatar: u("1500648767791-00dcc994a43e", 200), bio: "Spatial design & quiet objects.", followers: 8920, following: 188, posts: 92 },
+  { id: "c3", username: "ayanna.k", name: "Ayanna Kelly", fullName: "Ayanna Kelly", avatar: u("1438761681033-6461ffad8d80", 200), bio: "Editorial photographer.", followers: 24100, following: 421, posts: 312 },
+  { id: "c4", username: "ren.takeda", name: "Ren Takeda", fullName: "Ren Takeda", avatar: u("1535713875002-d1d0cf377fde", 200), bio: "Minimalism is a discipline.", followers: 5400, following: 99, posts: 64 },
+  { id: "c5", username: "juno.west", name: "Juno West", fullName: "Juno West", avatar: u("1534528741775-53994a69daeb", 200), bio: "Material studies.", followers: 31200, following: 502, posts: 428 },
+  { id: "c6", username: "amir.h", name: "Amir Hassan", fullName: "Amir Hassan", avatar: u("1463453091185-61582044d556", 200), bio: "Mountain documentarian.", followers: 9800, following: 220, posts: 148 },
 ];
 
 const palette: Array<Omit<Post, "id" | "creator" | "saved"> & { creatorIdx: number }> = [

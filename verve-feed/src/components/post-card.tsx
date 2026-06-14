@@ -17,7 +17,7 @@ export function PostCard({ post }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isOwner = user?._id === post.creator.id;
+  const isOwner = user?._id === post.creator?.id;
   const aspect = post.height / post.width;
 
   return (
@@ -99,21 +99,52 @@ export function PostCard({ post }: Props) {
 
           {/* Bottom meta on hover */}
           <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 pointer-events-none">
-            <img src={post.creator.avatar} alt={post.creator.name} className="size-7 rounded-full ring-2 ring-white/30 object-cover" />
-            <span className="text-white text-xs font-medium">@{post.creator.username}</span>
+            <img 
+              src={post.creator?.avatar || (post as any).user?.profilePicture || (post as any).user?.avatar || ""} 
+              alt={post.creator?.fullName || post.creator?.name || (post as any).user?.fullName || (post as any).user?.name || "Unknown Creator"} 
+              className="size-7 rounded-full ring-2 ring-white/30 object-cover" 
+            />
+            <div className="flex flex-col min-w-0">
+              <h4 className="text-white text-xs font-medium truncate leading-none mb-0.5">
+                {post.creator?.fullName || (post as any).user?.fullName || "Unknown Creator"}
+              </h4>
+              <p className="text-white/70 text-[10px] truncate leading-none">
+                @{post.creator?.username || (post as any).user?.username || "unknown"}
+              </p>
+            </div>
           </div>
         </Link>
       </div>
 
       {/* Below-card meta */}
       <div className="flex items-center justify-between px-2 mt-3">
-        <Link to="/profile/$username" params={{ username: post.creator.username }} className="flex items-center gap-2 min-w-0">
-          <img src={post.creator.avatar} alt={post.creator.name} className="size-7 rounded-full object-cover shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{post.title}</p>
-            <p className="text-[11px] text-muted-foreground truncate">@{post.creator.username}</p>
+        {(post.creator?.username || (post as any).user?.username) ? (
+          <Link 
+            to="/profile/$username" 
+            params={{ username: post.creator?.username || (post as any).user?.username }} 
+            className="flex items-center gap-2 min-w-0"
+          >
+            <img 
+              src={post.creator?.avatar || (post as any).user?.profilePicture || (post as any).user?.avatar || ""} 
+              alt={post.creator?.name || (post as any).user?.fullName || (post as any).user?.name || "Unknown Creator"} 
+              className="size-7 rounded-full object-cover shrink-0" 
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{post.title}</p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                @{post.creator?.username || (post as any).user?.username}
+              </p>
+            </div>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="size-7 rounded-full shrink-0 bg-muted" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{post.title}</p>
+              <p className="text-[11px] text-muted-foreground truncate">@unknown</p>
+            </div>
           </div>
-        </Link>
+        )}
         <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
           <button
             onClick={async () => {

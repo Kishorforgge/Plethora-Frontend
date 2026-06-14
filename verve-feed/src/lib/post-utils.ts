@@ -24,6 +24,7 @@ export function mapApiPostToDisplay(post: ApiPost): Post {
       id: creator._id,
       username: creator.username,
       name: creator.fullName || creator.username,
+      fullName: creator.fullName,
       avatar: creator.profilePicture,
       followers: 0,
       following: 0,
