@@ -2,13 +2,14 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
 import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, Trash2, Download } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { postsApi } from "@/lib/api";
+import { postsApi, userApi } from "@/lib/api";
 import { CommentSection } from "@/components/comment-section";
 import { mapApiPostToDisplay } from "@/lib/post-utils";
 import { useAuth } from "@/components/auth-provider";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ShareModal } from "@/components/share-modal";
 
 export const Route = createFileRoute("/post/$postId")({
   loader: async ({ params }) => {
@@ -66,7 +67,7 @@ export const Route = createFileRoute("/post/$postId")({
 
 function PostDetail() {
   const { post } = Route.useLoaderData();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(false);
@@ -75,6 +76,72 @@ function PostDetail() {
   const [saved, set_saved] = useState(post.saved ?? false);
   const [likesCount, setLikesCount] = useState(post.likes ?? 0);
   const [commentCount, setCommentCount] = useState(post.comments ?? 0);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Client-side React Query to get updated details (like state, saved state, etc.) with authentication header
+  const { data: currentPost } = useQuery({
+    queryKey: ["post-detail", post.id, user?._id],
+    queryFn: () => postsApi.getPostById(post.id).then(mapApiPostToDisplay),
+    initialData: post,
+  });
+
+  useEffect(() => {
+    if (currentPost) {
+      set_liked(currentPost.liked ?? false);
+      set_saved(currentPost.saved ?? false);
+      setLikesCount(currentPost.likes ?? 0);
+      setCommentCount(currentPost.comments ?? 0);
+    }
+  }, [currentPost]);
+
+  const { data: creatorProfile, refetch: refetchCreator } = useQuery({
+    queryKey: ["creator-profile", post.creator.username, user?._id],
+    queryFn: () => userApi.getUserProfile(post.creator.username),
+    enabled: !!post.creator.username,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () => userApi.follow(post.creator.id),
+    onSuccess: () => {
+      toast.success(`You are now following ${post.creator.username}`);
+      refetchCreator();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to follow");
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: () => userApi.unfollow(post.creator.id),
+    onSuccess: () => {
+      toast.success(`You have unfollowed ${post.creator.username}`);
+      refetchCreator();
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to unfollow");
+    },
+  });
+
+  const handleFollowClick = () => {
+    if (loading) {
+      toast("Checking authentication...");
+      return;
+    }
+    if (!user) {
+      const confirmLogin = window.confirm("Please sign in to follow creators. Would you like to go to the login page?");
+      if (confirmLogin) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
+      return;
+    }
+    if (creatorProfile?.isFollowing) {
+      if (window.confirm(`Unfollow @${post.creator.username}?`)) {
+        unfollowMutation.mutate();
+      }
+    } else {
+      followMutation.mutate();
+    }
+  };
 
   const handleDownload = async () => {
     toast("Downloading...");
@@ -132,8 +199,15 @@ function PostDetail() {
     .slice(0, 8);
 
   const handleLike = async () => {
+    if (loading) {
+      toast("Checking authentication...");
+      return;
+    }
     if (!user) {
-      toast.error("Please sign in to like posts.");
+      const confirmLogin = window.confirm("Please sign in to like posts. Would you like to go to the login page?");
+      if (confirmLogin) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
       return;
     }
     const next = !liked;
@@ -146,6 +220,7 @@ function PostDetail() {
         const res = await postsApi.unlike(post.id);
         setLikesCount(res.likesCount);
       }
+      queryClient.invalidateQueries({ queryKey: ["post-detail", post.id] });
     } catch (err) {
       set_liked(!next);
       toast.error("Failed to update like status");
@@ -153,8 +228,15 @@ function PostDetail() {
   };
 
   const handleSave = async () => {
+    if (loading) {
+      toast("Checking authentication...");
+      return;
+    }
     if (!user) {
-      toast.error("Please sign in to save posts.");
+      const confirmLogin = window.confirm("Please sign in to save posts. Would you like to go to the login page?");
+      if (confirmLogin) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
       return;
     }
     const next = !saved;
@@ -167,6 +249,7 @@ function PostDetail() {
         await postsApi.unbookmark(post.id);
         toast.success("Removed from bookmarks");
       }
+      queryClient.invalidateQueries({ queryKey: ["post-detail", post.id] });
     } catch (err) {
       set_saved(!next);
       toast.error("Failed to update bookmark status");
@@ -220,7 +303,18 @@ function PostDetail() {
                     <Trash2 className="size-4 inline mr-2" /> Delete
                   </button>
                 )}
-                <button className="px-4 h-9 rounded-full bg-foreground text-background text-xs font-medium">Follow</button>
+                {user?._id !== post.creator.id && (
+                  <button
+                    onClick={handleFollowClick}
+                    className={`px-4 h-9 rounded-full text-xs font-medium transition-colors ${
+                      creatorProfile?.isFollowing
+                        ? "bg-secondary text-foreground border border-border"
+                        : "bg-foreground text-background hover:opacity-90"
+                    }`}
+                  >
+                    {creatorProfile?.isFollowing ? "Following" : "Follow"}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -237,7 +331,11 @@ function PostDetail() {
               <ActionBtn onClick={handleLike} icon={<Heart className={`size-4 ${liked ? "fill-red-500 stroke-red-500 scale-110" : ""}`} />} label={likesCount} />
               <ActionBtn icon={<MessageCircle className="size-4" />} label={commentCount} />
               <ActionBtn onClick={handleSave} icon={<Bookmark className={`size-4 ${saved ? "fill-foreground" : ""}`} />} label={saved ? "Saved" : "Save"} />
-              <ActionBtn onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); toast("Link copied"); }} icon={<Share2 className="size-4" />} label="Share" />
+              <ActionBtn 
+                onClick={() => setShowShareModal(true)} 
+                icon={<Share2 className="size-4" />} 
+                label="Share" 
+              />
               <ActionBtn onClick={handleDownload} icon={<Download className="size-4" />} label="Download" />
             </div>
 
@@ -259,7 +357,12 @@ function PostDetail() {
           )}
         </section>
       </div>
-    </AppShell>
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          shareUrl={`${window.location.origin}/post/${post.id}`}
+        />
+      </AppShell>
   );
 }
 

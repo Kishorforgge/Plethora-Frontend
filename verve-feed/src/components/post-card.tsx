@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Bookmark, Share2, Trash2, Download } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import type { Post } from "@/lib/mock-data";
 import { postsApi } from "@/lib/api";
@@ -10,7 +10,7 @@ import { useAuth } from "@/components/auth-provider";
 interface Props { post: Post }
 
 export function PostCard({ post }: Props) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(!!post.liked);
   const [saved, setSaved] = useState(post.saved);
@@ -117,6 +117,17 @@ export function PostCard({ post }: Props) {
             <button
               onClick={async (e) => {
                 e.preventDefault();
+                if (loading) {
+                  toast("Checking authentication...");
+                  return;
+                }
+                if (!user) {
+                  const confirmLogin = window.confirm("Please sign in to save posts. Would you like to go to the login page?");
+                  if (confirmLogin) {
+                    window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                  }
+                  return;
+                }
                 const next = !saved;
                 setSaved(next);
                 try {
@@ -192,6 +203,17 @@ export function PostCard({ post }: Props) {
         <div className="flex items-center gap-1" onClick={(e) => e.preventDefault()}>
           <button
             onClick={async () => {
+              if (loading) {
+                toast("Checking authentication...");
+                return;
+              }
+              if (!user) {
+                const confirmLogin = window.confirm("Please sign in to like posts. Would you like to go to the login page?");
+                if (confirmLogin) {
+                  window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                }
+                return;
+              }
               const next = !liked;
               setLiked(next);
               try {
@@ -218,13 +240,7 @@ export function PostCard({ post }: Props) {
             <MessageCircle className="size-4 shrink-0" />
             {post.comments > 0 && <span>{post.comments}</span>}
           </Link>
-          <button
-            onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); toast("Link copied"); }}
-            aria-label="Share"
-            className="size-8 rounded-full grid place-items-center hover:bg-secondary transition-colors"
-          >
-            <Share2 className="size-4" />
-          </button>
+
           <button
             onClick={handleDownload}
             aria-label="Download"

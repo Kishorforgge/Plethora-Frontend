@@ -30,15 +30,30 @@ export class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
+function getCookie(name: string): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY);
+  if (token && !localStorage.getItem(TOKEN_KEY)) {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+  return token;
 }
 
 export function setToken(token: string | null) {
   if (typeof window === "undefined") return;
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    document.cookie = `${TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
+  }
 }
 
 export async function apiFetch<T>(

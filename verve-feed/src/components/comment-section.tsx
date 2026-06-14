@@ -22,7 +22,7 @@ function formatDate(dateStr: string) {
 }
 
 export function CommentSection({ postId, onCommentCountChange }: Props) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,8 +110,15 @@ export function CommentSection({ postId, onCommentCountChange }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) {
+      toast("Checking authentication...");
+      return;
+    }
     if (!user) {
-      toast.error("Please sign in to comment.");
+      const confirmLogin = window.confirm("Please sign in to leave a comment. Would you like to go to the login page?");
+      if (confirmLogin) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      }
       return;
     }
     if (!draft.trim()) return;
@@ -218,13 +225,27 @@ export function CommentSection({ postId, onCommentCountChange }: Props) {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={user ? "Add a comment…" : "Sign in to leave a comment"}
-          disabled={!user || addMutation.isPending}
+          placeholder={
+            loading
+              ? "Checking authentication…"
+              : user
+              ? "Add a comment…"
+              : "Sign in to leave a comment"
+          }
+          disabled={loading || addMutation.isPending}
+          onFocus={() => {
+            if (!loading && !user) {
+              const confirmLogin = window.confirm("Please sign in to leave a comment. Would you like to go to the login page?");
+              if (confirmLogin) {
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+              }
+            }
+          }}
           className="flex-1 h-11 px-4 rounded-full border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring text-sm disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={!user || !draft.trim() || addMutation.isPending}
+          disabled={loading || (user && !draft.trim()) || addMutation.isPending}
           className="px-5 h-11 rounded-full bg-foreground text-background text-sm font-medium hover:scale-[1.02] active:scale-95 transition-transform disabled:opacity-50"
         >
           Send

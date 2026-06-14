@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ApiError, ApiUser, authApi, setToken, TOKEN_KEY } from "@/lib/api";
+import { ApiError, ApiUser, authApi, getToken, setToken, TOKEN_KEY } from "@/lib/api";
 
 interface AuthContextValue {
   user: ApiUser | null;
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const token = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+    const token = getToken();
     console.log("[useAuth] refreshUser called. Current token stored in localStorage exists:", !!token);
     if (!token) {
       setUser(null);
