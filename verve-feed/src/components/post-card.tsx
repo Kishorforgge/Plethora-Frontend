@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, Bookmark, Share2, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import type { Post } from "@/lib/mock-data";
 import { postsApi } from "@/lib/api";
@@ -19,6 +19,50 @@ export function PostCard({ post }: Props) {
 
   const isOwner = user?._id === post.creator?.id;
   const aspect = post.height / post.width;
+
+  const handleDownload = async () => {
+    toast("Downloading...");
+    try {
+      const response = await fetch(post.image);
+      if (!response.ok) throw new Error("Network response was not ok");
+      const blob = await response.blob();
+      
+      let extension = "jpg";
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        const parts = contentType.split("/");
+        if (parts.length === 2) {
+          extension = parts[1];
+        }
+      } else {
+        const urlParts = post.image.split(".");
+        if (urlParts.length > 1) {
+          const possibleExt = urlParts[urlParts.length - 1].split("?")[0].toLowerCase();
+          if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(possibleExt)) {
+            extension = possibleExt;
+          }
+        }
+      }
+      
+      const filename = post.title 
+        ? `${post.title.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`
+        : `plethora-image.${extension}`;
+      
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Download complete");
+    } catch (error) {
+      toast.error("Download failed");
+      console.error(error);
+    }
+  };
 
   return (
     <article className="group break-inside-avoid mb-6">
@@ -180,6 +224,13 @@ export function PostCard({ post }: Props) {
             className="size-8 rounded-full grid place-items-center hover:bg-secondary transition-colors"
           >
             <Share2 className="size-4" />
+          </button>
+          <button
+            onClick={handleDownload}
+            aria-label="Download"
+            className="size-8 rounded-full grid place-items-center hover:bg-secondary transition-colors"
+          >
+            <Download className="size-4" />
           </button>
         </div>
       </div>

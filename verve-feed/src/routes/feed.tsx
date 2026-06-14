@@ -37,7 +37,11 @@ function FeedPage() {
     queryFn: userApi.suggested,
   });
 
-  const visibleCreators = creators;
+  const visibleCreators = creators.filter(
+    (c) =>
+      c.username !== "verifystudio2" &&
+      c.fullName !== "Verification Studio"
+  );
 
   const { data: followingPosts = [], isLoading: loadingFollowing } = useQuery({
     queryKey: ["following-feed"],

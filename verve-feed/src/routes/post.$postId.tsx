@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
-import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Share2, ArrowLeft, Trash2, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { postsApi } from "@/lib/api";
@@ -75,6 +75,50 @@ function PostDetail() {
   const [saved, set_saved] = useState(post.saved ?? false);
   const [likesCount, setLikesCount] = useState(post.likes ?? 0);
   const [commentCount, setCommentCount] = useState(post.comments ?? 0);
+
+  const handleDownload = async () => {
+    toast("Downloading...");
+    try {
+      const response = await fetch(post.image);
+      if (!response.ok) throw new Error("Network response was not ok");
+      const blob = await response.blob();
+      
+      let extension = "jpg";
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        const parts = contentType.split("/");
+        if (parts.length === 2) {
+          extension = parts[1];
+        }
+      } else {
+        const urlParts = post.image.split(".");
+        if (urlParts.length > 1) {
+          const possibleExt = urlParts[urlParts.length - 1].split("?")[0].toLowerCase();
+          if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(possibleExt)) {
+            extension = possibleExt;
+          }
+        }
+      }
+      
+      const filename = post.title 
+        ? `${post.title.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${extension}`
+        : `plethora-image.${extension}`;
+      
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      
+      toast.success("Download complete");
+    } catch (error) {
+      toast.error("Download failed");
+      console.error(error);
+    }
+  };
 
   // Fetch related posts from database
   const { data: relatedPosts = [] } = useQuery({
@@ -194,6 +238,7 @@ function PostDetail() {
               <ActionBtn icon={<MessageCircle className="size-4" />} label={commentCount} />
               <ActionBtn onClick={handleSave} icon={<Bookmark className={`size-4 ${saved ? "fill-foreground" : ""}`} />} label={saved ? "Saved" : "Save"} />
               <ActionBtn onClick={() => { navigator.clipboard?.writeText(window.location.href).catch(() => {}); toast("Link copied"); }} icon={<Share2 className="size-4" />} label="Share" />
+              <ActionBtn onClick={handleDownload} icon={<Download className="size-4" />} label="Download" />
             </div>
 
             <CommentSection
