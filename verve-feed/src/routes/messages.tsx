@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
-import { ApiConversation, ApiMessage, discussionsApi, userApi, messagesApi } from "@/lib/api";
+import { ApiConversation, ApiMessage, BACKEND_HOST, discussionsApi, userApi, messagesApi } from "@/lib/api";
 import { requireAuth } from "@/lib/require-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -69,8 +69,7 @@ function MessagesPage() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
-    const socket = io(socketUrl, {
+    const socket = io(BACKEND_HOST, {
       withCredentials: true,
       transports: ["websocket", "polling"]
     });

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { MasonryFeed } from "@/components/masonry-feed";
 import { useAuth } from "@/components/auth-provider";
-import { postsApi, userApi, messagesApi } from "@/lib/api";
+import { BACKEND_HOST, postsApi, userApi, messagesApi } from "@/lib/api";
 import { mapApiPostToDisplay } from "@/lib/post-utils";
 import { requireAuth } from "@/lib/require-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -44,8 +44,7 @@ function UserProfilePage() {
 
   // Socket.IO synchronization for follow/unfollow updates
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
-    const socket = io(socketUrl, {
+    const socket = io(BACKEND_HOST, {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });

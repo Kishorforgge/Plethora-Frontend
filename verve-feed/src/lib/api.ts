@@ -1,4 +1,16 @@
-export const API_URL = import.meta.env.VITE_API_URL || "https://plethora-p5ei.onrender.com/api";
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim();
+const defaultHost = import.meta.env.DEV
+  ? "http://localhost:5000"
+  : "https://plethora-p5ei.onrender.com";
+
+export const API_URL = rawApiUrl
+  ? rawApiUrl.replace(/\/$/, "")
+  : `${defaultHost}/api`;
+
+export const BACKEND_HOST = rawApiUrl
+  ? rawApiUrl.replace(/\/api\/?$/, "")
+  : defaultHost;
+
 export const TOKEN_KEY = "plethora_token";
 
 export interface ApiUser {

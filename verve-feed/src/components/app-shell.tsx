@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Home, Compass, Plus, Bell, User, Moon, Sun, Search, MessageCircle, MessageSquare, LogOut } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { useAuth } from "./auth-provider";
-import { notificationsApi } from "@/lib/api";
+import { BACKEND_HOST, notificationsApi } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BrandLogo } from "./brand-logo";
@@ -40,8 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.trim() : "http://localhost:5000";
-    const socket = io(socketUrl, {
+    const socket = io(BACKEND_HOST, {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });
